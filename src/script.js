@@ -3,65 +3,91 @@
 document.addEventListener('DOMContentLoaded', function() {
     console.log('[script] DOMContentLoaded — script.js loaded');
 
-    // Helper: adjust CSS var for fixed header height so body content isn't hidden
-    function adjustHeaderHeight() {
-        const siteTop = document.querySelector('.site-top');
-        if (siteTop) {
-            const h = siteTop.getBoundingClientRect().height;
-            document.documentElement.style.setProperty('--site-top-height', h + 'px');
-        } else {
-            document.documentElement.style.setProperty('--site-top-height', '0px');
-        }
-    }
-    adjustHeaderHeight();
-    window.addEventListener('resize', adjustHeaderHeight);
-
-    // Sticky header: add small shadow class when scrolled
+    // Sticky header: add small shadow class when scrolled (header now scrolls with page)
     const siteTopEl = document.querySelector('.site-top');
+
+    // For FAB show/hide on scroll
+    const fabEl = document.querySelector('.fab-whatsapp');
+    let lastScrollY = window.scrollY || 0;
     function onScroll() {
-        if (!siteTopEl) return;
-        if (window.scrollY > 8) {
-            siteTopEl.classList.add('scrolled');
-        } else {
-            siteTopEl.classList.remove('scrolled');
+        if (siteTopEl) {
+            if (window.scrollY > 8) siteTopEl.classList.add('scrolled'); else siteTopEl.classList.remove('scrolled');
+        }
+
+        // FAB show/hide based on scroll direction
+        if (fabEl) {
+            const current = window.scrollY || 0;
+            if (current > lastScrollY + 8) {
+                // scrolled down -> hide
+                fabEl.style.transform = 'translateY(20px) scale(0.95)';
+                fabEl.style.opacity = '0';
+                fabEl.style.pointerEvents = 'none';
+            } else if (current < lastScrollY - 8) {
+                // scrolled up -> show
+                fabEl.style.transform = '';
+                fabEl.style.opacity = '1';
+                fabEl.style.pointerEvents = '';
+            }
+            lastScrollY = current;
         }
     }
     window.addEventListener('scroll', onScroll);
     onScroll();
 
-    // Mobile menu toggle
+    // Mobile menu toggle (accessible)
     const mobileBtn = document.querySelector('.mobile-menu-btn');
     const headerNav = document.querySelector('.header-nav');
     if (mobileBtn && headerNav) {
+        function openMenu() {
+            headerNav.classList.add('open');
+            mobileBtn.setAttribute('aria-expanded', 'true');
+            const firstLink = headerNav.querySelector('a');
+            if (firstLink) firstLink.focus();
+        }
+        function closeMenu() {
+            headerNav.classList.remove('open');
+            mobileBtn.setAttribute('aria-expanded', 'false');
+            mobileBtn.focus();
+        }
+
         mobileBtn.addEventListener('click', function(e) {
             e.stopPropagation();
-            headerNav.classList.toggle('open');
+            const willOpen = !headerNav.classList.contains('open');
+            if (willOpen) openMenu(); else closeMenu();
         });
+
+        // keyboard support: Enter / Space toggles, Escape closes
+        mobileBtn.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                mobileBtn.click();
+            }
+        });
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && headerNav.classList.contains('open')) {
+                closeMenu();
+            }
+        });
+
         // close when clicking outside
         document.addEventListener('click', function(e) {
             if (!headerNav.contains(e.target) && !mobileBtn.contains(e.target)) {
-                headerNav.classList.remove('open');
+                if (headerNav.classList.contains('open')) closeMenu();
             }
         });
         // close when clicking a nav link
-        headerNav.querySelectorAll('a').forEach(a => a.addEventListener('click', () => headerNav.classList.remove('open')));
+        headerNav.querySelectorAll('a').forEach(a => a.addEventListener('click', () => closeMenu()));
     }
 
-    // Плавная прокрутка по якорям
+    // Плавная прокрутка по якорям (без смещения — хедер теперь нефиксированный)
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', function(e) {
-            const target = document.querySelector(this.getAttribute('href'));
+            const href = this.getAttribute('href');
+            if (!href || href === '#') return;
+            const target = document.querySelector(href);
             if (target) {
                 e.preventDefault();
-                // if header exists, account for its height with scrollBy after smooth scroll
-                const headerOffset = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--site-top-height')) || 0;
                 target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                // small adjustment for fixed header: scroll a little up after a delay
-                if (headerOffset) {
-                    setTimeout(() => {
-                        window.scrollBy({ top: -headerOffset + 8, left: 0, behavior: 'smooth' });
-                    }, 320);
-                }
             }
         });
     });
@@ -104,6 +130,106 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }, { threshold: 0.2 });
     animatedSections.forEach(section => observer.observe(section));
+
+    // Scrollspy: highlight header nav link for the section in view
+    (function initScrollSpy(){
+        const navLinks = Array.from(document.querySelectorAll('.header-nav a'));
+        const sectionIds = navLinks.map(a => a.getAttribute('href')).filter(h => h && h.startsWith('#')).map(h => h.replace('#',''));
+        const sections = sectionIds.map(id => document.getElementById(id)).filter(Boolean);
+        if (sections.length === 0) return;
+
+        const spyObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (!entry.target.id) return;
+                const id = entry.target.id;
+                const link = document.querySelector('.header-nav a[href="#' + id + '"]');
+                if (entry.isIntersecting) {
+                    // remove active from others
+                    navLinks.forEach(l => l.classList.remove('active'));
+                    if (link) link.classList.add('active');
+                }
+            });
+        }, { threshold: 0.55 });
+
+        sections.forEach(s => spyObserver.observe(s));
+    })();
+
+    // --- Gallery modal viewer ---
+    const galleryImgs = Array.from(document.querySelectorAll('.gallery-images img'));
+    if (galleryImgs.length > 0) {
+        let currentIndex = 0;
+        let overlayEl = null;
+
+        function openImage(index) {
+            currentIndex = index;
+            const src = galleryImgs[currentIndex].src;
+            const alt = galleryImgs[currentIndex].alt || '';
+
+            overlayEl = document.createElement('div');
+            overlayEl.className = 'img-modal-overlay';
+            overlayEl.innerHTML = `
+                <div class="img-modal" role="dialog" aria-modal="true" aria-label="Превью изображения">
+                    <button class="close-btn" aria-label="Закрыть">✕</button>
+                    <img src="${src}" alt="${alt}">
+                </div>
+            `;
+            document.body.appendChild(overlayEl);
+            document.body.style.overflow = 'hidden';
+
+            const closeBtn = overlayEl.querySelector('.close-btn');
+            closeBtn.focus();
+
+            // click outside to close
+            overlayEl.addEventListener('click', function(e) {
+                if (e.target === overlayEl) closeModal();
+            });
+
+            closeBtn.addEventListener('click', closeModal);
+
+            // keyboard navigation inside modal
+            function modalKey(e) {
+                if (!overlayEl) return;
+                if (e.key === 'Escape') closeModal();
+                if (e.key === 'ArrowRight') nextImage();
+                if (e.key === 'ArrowLeft') prevImage();
+            }
+            document.addEventListener('keydown', modalKey);
+
+            // store reference so we can remove listener on close
+            overlayEl._modalKey = modalKey;
+        }
+
+        function closeModal() {
+            if (!overlayEl) return;
+            document.body.style.overflow = '';
+            document.removeEventListener('keydown', overlayEl._modalKey);
+            overlayEl.remove();
+            overlayEl = null;
+            // return focus to the thumbnail
+            const thumb = galleryImgs[currentIndex];
+            if (thumb) thumb.focus();
+        }
+
+        function nextImage() {
+            currentIndex = (currentIndex + 1) % galleryImgs.length;
+            if (overlayEl) overlayEl.querySelector('img').src = galleryImgs[currentIndex].src;
+        }
+        function prevImage() {
+            currentIndex = (currentIndex - 1 + galleryImgs.length) % galleryImgs.length;
+            if (overlayEl) overlayEl.querySelector('img').src = galleryImgs[currentIndex].src;
+        }
+
+        galleryImgs.forEach((img, idx) => {
+            img.setAttribute('tabindex', '0');
+            img.addEventListener('click', () => openImage(idx));
+            img.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    openImage(idx);
+                }
+            });
+        });
+    }
 });
 
 // Всплывающее уведомление
