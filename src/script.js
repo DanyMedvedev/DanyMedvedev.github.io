@@ -2,13 +2,66 @@
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('[script] DOMContentLoaded — script.js loaded');
+
+    // Helper: adjust CSS var for fixed header height so body content isn't hidden
+    function adjustHeaderHeight() {
+        const siteTop = document.querySelector('.site-top');
+        if (siteTop) {
+            const h = siteTop.getBoundingClientRect().height;
+            document.documentElement.style.setProperty('--site-top-height', h + 'px');
+        } else {
+            document.documentElement.style.setProperty('--site-top-height', '0px');
+        }
+    }
+    adjustHeaderHeight();
+    window.addEventListener('resize', adjustHeaderHeight);
+
+    // Sticky header: add small shadow class when scrolled
+    const siteTopEl = document.querySelector('.site-top');
+    function onScroll() {
+        if (!siteTopEl) return;
+        if (window.scrollY > 8) {
+            siteTopEl.classList.add('scrolled');
+        } else {
+            siteTopEl.classList.remove('scrolled');
+        }
+    }
+    window.addEventListener('scroll', onScroll);
+    onScroll();
+
+    // Mobile menu toggle
+    const mobileBtn = document.querySelector('.mobile-menu-btn');
+    const headerNav = document.querySelector('.header-nav');
+    if (mobileBtn && headerNav) {
+        mobileBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            headerNav.classList.toggle('open');
+        });
+        // close when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!headerNav.contains(e.target) && !mobileBtn.contains(e.target)) {
+                headerNav.classList.remove('open');
+            }
+        });
+        // close when clicking a nav link
+        headerNav.querySelectorAll('a').forEach(a => a.addEventListener('click', () => headerNav.classList.remove('open')));
+    }
+
     // Плавная прокрутка по якорям
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', function(e) {
             const target = document.querySelector(this.getAttribute('href'));
             if (target) {
                 e.preventDefault();
-                target.scrollIntoView({ behavior: 'smooth' });
+                // if header exists, account for its height with scrollBy after smooth scroll
+                const headerOffset = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--site-top-height')) || 0;
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                // small adjustment for fixed header: scroll a little up after a delay
+                if (headerOffset) {
+                    setTimeout(() => {
+                        window.scrollBy({ top: -headerOffset + 8, left: 0, behavior: 'smooth' });
+                    }, 320);
+                }
             }
         });
     });

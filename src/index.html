@@ -7,6 +7,43 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<!-- New full-width header like the reference (top bar + main header) -->
+<header class="site-top">
+  <div class="top-bar">
+    <div class="top-inner container-inner">
+      <div class="top-left">
+        <a href="tel:+79991234567" class="top-phone">+7 (999) 123-45-67</a>
+        <a href="mailto:ivan.santeh@mail.ru" class="top-email">ivan.santeh@mail.ru</a>
+      </div>
+      <div class="top-right">
+        <a href="https://wa.me/79991234567" aria-label="WhatsApp" class="icon-link">WhatsApp</a>
+        <a href="#" aria-label="Telegram" class="icon-link">Telegram</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="site-header">
+    <div class="header-inner container-inner">
+      <div class="header-left">
+        <img src="https://cdn-icons-png.flaticon.com/512/2933/2933811.png" alt="Логотип" class="header-logo" width="56" height="56">
+        <div class="header-name">
+          <h1 class="header-title">Иван Иванов</h1>
+          <p class="header-sub">Сантехник — ремонт, замена, обслуживание</p>
+        </div>
+      </div>
+
+      <nav class="header-nav" aria-label="Основная навигация">
+        <a href="#services">Услуги</a>
+        <a href="#gallery">Примеры работ</a>
+        <a href="#contact-form" class="cta-link">Оставить заявку</a>
+        <a href="#contacts">Контакты</a>
+      </nav>
+
+      <button class="mobile-menu-btn" aria-label="Открыть меню">☰</button>
+    </div>
+  </div>
+</header>
+
 <div class="container">
     <section class="welcome accent-bg">
         <div class="welcome-content">
@@ -35,7 +72,9 @@
             </div>
         </div>
     </section>
-    <section class="services light-bg">
+    <!-- explicit anchors to help static link resolution -->
+    <a id="services" name="services" class="page-anchor"></a>
+    <section class="services light-bg" id="services">
         <h3>Услуги</h3>
         <div class="service-cards">
             <div class="service-card">
@@ -81,7 +120,8 @@
             </div>
         </div>
     </section>
-    <section class="gallery">
+    <a id="gallery" name="gallery" class="page-anchor"></a>
+    <section class="gallery" id="gallery">
         <h3>Примеры работ</h3>
         <div class="gallery-images">
             <img src="https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=400&q=80" alt="Работа 1">
@@ -89,7 +129,8 @@
         </div>
     </section>
 
-    <section class="contacts accent-bg">
+    <a id="contacts" name="contacts" class="page-anchor"></a>
+    <section class="contacts accent-bg" id="contacts">
         <h3>Контакты</h3>
         <p>Телефон: <a href="tel:+79991234567">+48 516 732 548</a></p>
         <p>Email: <a href="mailto:ivan.santeh@mail.ru">ivan.santeh@mail.ru</a></p>
