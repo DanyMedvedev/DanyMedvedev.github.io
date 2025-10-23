@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Модальное окно для формы обратной связи
     const modal = document.getElementById('contactModal');
-    const btnPrimary = document.querySelectorAll('.btn-primary');
+    const btnPrimary = document.querySelectorAll('.hero-buttons .btn-primary');
     const closeBtn = document.querySelector('.modal-close');
 
     btnPrimary.forEach(btn => {
